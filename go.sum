@@ -1,3 +1,5 @@
+github.com/bootdotdev/learn-file-storage-s3-golang-starter v0.0.0-20250102153257-75be79c6cf72 h1:K3JH6FOh0uP9lAAcyU9m3R+kxnEIL0kqmLxaCWqB220=
+github.com/bootdotdev/learn-file-storage-s3-golang-starter v0.0.0-20250102153257-75be79c6cf72/go.mod h1:50j+XacICi5t8xA1+k0LUj4NGHCgn0jNKRuOV6bGres=
 github.com/golang-jwt/jwt/v5 v5.0.0-rc.1 h1:tDQ1LjKga657layZ4JLsRdxgvupebc0xuPwRNuTfUgs=
 github.com/golang-jwt/jwt/v5 v5.0.0-rc.1/go.mod h1:pqrtFR0X4osieyHYxtmOUWsAWrfe1Q5UVIyoH402zdk=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
