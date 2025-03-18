@@ -1,10 +1,12 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/agustin-carnevale/file-storage-s3-go/internal/auth"
@@ -45,8 +47,14 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 	}
 	defer file.Close()
 
-	mediaType := header.Header.Get("Content-Type")
-	imageBytes, err := io.ReadAll(file)
+	contentType := header.Header.Get("Content-Type")
+
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil || !(mediaType == "image/jpeg" || mediaType == "image/png") {
+		respondWithError(w, http.StatusBadRequest, "Invalid media type", err)
+		return
+	}
+
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Unable to read image", err)
 		return
@@ -62,16 +70,29 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Add to global map
-	// videoThumbnails[videoID] = thumbnail{
-	// 	data:      imageBytes,
-	// 	mediaType: mediaType,
-	// }
+	// Save image file to filesystem
+	extensions, err := mime.ExtensionsByType(mediaType)
+	if err != nil || len(extensions) == 0 {
+		respondWithError(w, http.StatusBadRequest, "Invalid media type", err)
+		return
+	}
+	imageExtension := extensions[0]
+	imageFilename := videoIDString + imageExtension
+	imagePath := filepath.Join(cfg.assetsRoot, imageFilename)
 
-	// thumbnailUrl := fmt.Sprintf("http://localhost:%s/api/thumbnails/%s", cfg.port, videoID)
+	newFile, err := os.Create(imagePath)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error creating file", err)
+		return
+	}
 
-	imageBase64 := base64.StdEncoding.EncodeToString(imageBytes)
-	thumbnailUrl := fmt.Sprintf("data:%s;base64,%s", mediaType, imageBase64)
+	_, err = io.Copy(newFile, file)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error copying file", err)
+		return
+	}
+
+	thumbnailUrl := fmt.Sprintf("http://localhost:%s/assets/%s", cfg.port, imageFilename)
 
 	updatedVideo := database.Video{
 		ID:           video.ID,
