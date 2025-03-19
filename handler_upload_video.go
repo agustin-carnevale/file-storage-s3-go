@@ -118,8 +118,24 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 
 	videoFilename := filePrefix + base64.RawURLEncoding.EncodeToString(randomBytes) + ".mp4"
 
+	// Before uploading, pre-process video for fast start (moov atom at the star of the file)
+	processedFilePath, err := processVideoForFastStart(tmpVideoFile.Name())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error pre-processing file for fast start", err)
+		return
+	}
+
+	// Open the file
+	processedFile, err := os.Open(processedFilePath)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error opening processed video file", err)
+		return
+	}
+	defer os.Remove(processedFile.Name())
+	defer processedFile.Close()
+
 	// Read the file into a byte slice
-	videoBytes, err := io.ReadAll(tmpVideoFile)
+	videoBytes, err := io.ReadAll(processedFile)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Error with video temp file", err)
 		return
