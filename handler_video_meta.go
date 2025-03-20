@@ -84,6 +84,7 @@ func (cfg *apiConfig) handlerVideoMetaDelete(w http.ResponseWriter, r *http.Requ
 func (cfg *apiConfig) handlerVideoGet(w http.ResponseWriter, r *http.Request) {
 	videoIDString := r.PathValue("videoID")
 	videoID, err := uuid.Parse(videoIDString)
+
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid video ID", err)
 		return
@@ -95,7 +96,13 @@ func (cfg *apiConfig) handlerVideoGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, video)
+	presignedVideo, err := cfg.dbVideoToSignedVideo(video)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error generating pre-signed videoURL", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, presignedVideo)
 }
 
 func (cfg *apiConfig) handlerVideosRetrieve(w http.ResponseWriter, r *http.Request) {
@@ -116,5 +123,20 @@ func (cfg *apiConfig) handlerVideosRetrieve(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, videos)
+	if len(videos) > 0 {
+		var presignedVideos []database.Video
+		for _, video := range videos {
+			presignedVideo, err := cfg.dbVideoToSignedVideo(video)
+			if err != nil {
+				respondWithError(w, http.StatusInternalServerError, "error generating pre-signed videoURL", err)
+				return
+			}
+			presignedVideos = append(presignedVideos, presignedVideo)
+		}
+
+		respondWithJSON(w, http.StatusOK, presignedVideos)
+	} else {
+		respondWithJSON(w, http.StatusOK, videos)
+	}
+
 }

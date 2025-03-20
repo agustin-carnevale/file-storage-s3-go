@@ -152,9 +152,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	videoUrl := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", cfg.s3Bucket, cfg.s3Region, videoFilename)
-
-	fmt.Println("VIDEO URL:", videoUrl)
+	videoUrl := fmt.Sprintf("%s,%s", cfg.s3Bucket, videoFilename)
 
 	updatedVideo := database.Video{
 		ID:           video.ID,
@@ -175,5 +173,11 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, updatedVideo)
+	presignedUpdatedVideo, err := cfg.dbVideoToSignedVideo(updatedVideo)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error generating pre-signed videoURL", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, presignedUpdatedVideo)
 }
